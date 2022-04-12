@@ -7,6 +7,8 @@ use sdl2::keyboard::Keycode;
 use c_str_macro::c_str;
 use std::mem;
 use std::os::raw::c_void;
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::time::Duration;
 
 mod shader;
@@ -49,6 +51,16 @@ fn main() {
     gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
     let shader = Shader::new("src/shader/Basic.vert", "src/shader/Basic.frag");
 
+    // Initialize imgui
+    let mut imgui_context = imgui::Context::create();
+    imgui_context.set_ini_filename(Some(PathBuf::from_str("Config/DefaultGui.ini").unwrap()));
+
+    // Initialize imgui-sdl2
+    let mut imgui_sdl2_context = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, &window);
+    let imgui_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| {
+        video_subsystem.gl_get_proc_address(s) as _
+    });
+
     // Set drawing buffer
     #[rustfmt::skip]
     let vertices: [f32; BUFF_SIZE] = [
@@ -69,15 +81,21 @@ fn main() {
 
     // Main loop until end request (Event processing and Drawing process alternately)
     let mut event_pump = sdl_context.event_pump().unwrap();
-    'running: loop {
+    'main: loop {
         // Execute event process
-        for event in event_pump.poll_iter() {
-            match event {
+        for ev in event_pump.poll_iter() {
+            // Ignore events on imgui because they are handled on ImGui
+            imgui_sdl2_context.handle_event(&mut imgui_context, &ev);
+            if imgui_sdl2_context.ignore_event(&ev) {
+                continue;
+            }
+
+            match ev {
                 Event::Quit { .. }
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => break 'running,
+                } => break 'main,
                 _ => {}
             }
         }
@@ -122,8 +140,22 @@ fn main() {
             shader.set_mat(c_str!("uView"), &view_matrix);
             shader.set_mat(c_str!("uProjection"), &projection_matrix);
 
-            // Update frame
+            // Draw vertices
             vertex.draw();
+
+            // Draw imgui window
+            imgui_sdl2_context.prepare_frame(
+                imgui_context.io_mut(),
+                &window,
+                &event_pump.mouse_state(),
+            );
+            let ui = imgui_context.frame();
+            imgui::Window::new("ImGui Window")
+                .size([300.0, 200.0], imgui::Condition::FirstUseEver)
+                .build(&ui, || {});
+            imgui_sdl2_context.prepare_render(&ui, &window);
+            imgui_renderer.render(ui);
+
             window.gl_swap_window();
         }
 
