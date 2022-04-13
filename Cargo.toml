@@ -10,20 +10,8 @@ cgmath = "0.18.0"
 c_str_macro = "1.0.3"
 
 gl = "0.14.0"
+sdl2 = "0.35.2"
 
 imgui = "0.8.2"
 imgui-sdl2 = "0.15.0"
 imgui-opengl-renderer = "0.11.1"
-
-[dependencies.sdl2]
-version = "0.35.2"
-default-features = false
-features = ["static-link", "use-vcpkg"]
-
-[package.metadata.vcpkg]
-dependencies = ["sdl2"]
-git = "https://github.com/microsoft/vcpkg"
-rev = "e809a42"
-
-[package.metadata.vcpkg.target]
-x86_64-pc-windows-msvc = { triplet = "x64-windows-static-md" }
