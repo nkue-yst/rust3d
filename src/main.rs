@@ -156,6 +156,7 @@ fn main() {
             imgui_sdl2_context.prepare_render(&ui, &window);
             imgui_renderer.render(ui);
 
+            // Update frame
             window.gl_swap_window();
         }
 
