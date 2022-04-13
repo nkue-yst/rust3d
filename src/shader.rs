@@ -103,14 +103,9 @@ impl Shader {
                     info_log.as_mut_ptr() as *mut GLchar,
                 );
 
-                let info_log_string = match String::from_utf8(info_log) {
-                    Ok(log) => log,
-                    Err(vec) => panic!("Failed to convert to log from buffer: {}", vec),
-                };
-
                 println!(
                     "Failed to compile shader: type = {}, log = {}",
-                    type_, info_log_string
+                    type_, str::from_utf8(&info_log).unwrap()
                 );
             } else {
                 gl::GetProgramiv(shader, gl::LINK_STATUS, &mut success);
