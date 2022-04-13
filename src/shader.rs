@@ -34,9 +34,15 @@ impl Shader {
             .read_to_string(&mut frag_code)
             .expect("Failed to read frag shader file");
 
-        // Create cstring
-        let vertex_code_cstr = CString::new(vertex_code.as_bytes()).unwrap();
-        let frag_code_cstr = CString::new(frag_code.as_bytes()).unwrap();
+        // Create cstring version shader code
+        let vertex_code_cstr = match CString::new(vertex_code.as_bytes()) {
+            Ok(cstr) => cstr,
+            Err(e) => panic!("Failed to create cstr vertex shader code: {:?}", e),
+        };
+        let frag_code_cstr = match CString::new(frag_code.as_bytes()) {
+            Ok(cstr) => cstr,
+            Err(e) => panic!("Failed to create cstr frag shader code: {:?}", e),
+        };
 
         unsafe {
             // Create vertex shader

@@ -11,11 +11,13 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
+mod common;
 mod shader;
 mod vertex;
 
 use shader::Shader;
 use vertex::Vertex;
+use common::print_success_log;
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
@@ -27,39 +29,64 @@ const BUFF_SIZE: usize = FLOAT_NUM * VERTEX_NUM;
 type Mat4 = cgmath::Matrix4<f32>;
 
 fn main() {
-    // Initialize SDL2 system
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+    // Initialize SDL2
+    let sdl = match sdl2::init() {
+        Ok(sdl) => sdl,
+        Err(e) => panic!("Failed to initialize SDL2: {:?}", e),
+    };
+    print_success_log("Initialize SDL2");
+
+    // Initialize video subsystem
+    let video_subsystem = match sdl.video() {
+        Ok(video_subsystem) => video_subsystem,
+        Err(e) => panic!("Failed to initialize video subsystem: {:?}", e),
+    };
+    print_success_log("Initialize video subsystem");
 
     // Initialize OpenGL
     let gl_attr = video_subsystem.gl_attr();
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     gl_attr.set_context_version(4, 0);
     let (major, minor) = gl_attr.context_version();
-    println!("OK: Initialize OpenGL ({}.{})", major, minor);
+    print_success_log(format!("Initialize OpenGL ({}.{})", major, minor).as_str());
 
     // Create new window
-    let window = video_subsystem
+    let window = match video_subsystem
         .window("Main Window", 1280, 720)
         .opengl()
         .position_centered()
         .build()
-        .unwrap();
+    {
+        Ok(window) => window,
+        Err(e) => panic!("Failed to create new window: {:?}", e),
+    };
+    print_success_log("Create new window");
 
-    // Create opengl context and shader
-    let gl_context = window.gl_create_context().unwrap();
+    // Initialize OpenGL
+    let gl_context = match window.gl_create_context() {
+        Ok(gl_context) => gl_context,
+        Err(e) => panic!("Failed to initialize OpenGL: {:?}", e),
+    };
+    print_success_log("Initialize OpenGL");
+
+    // Load shaders
     gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
     let shader = Shader::new("src/shader/Basic.vert", "src/shader/Basic.frag");
 
-    // Initialize imgui
+    // Initialize ImGui
     let mut imgui_context = imgui::Context::create();
-    imgui_context.set_ini_filename(Some(PathBuf::from_str("Config/DefaultGui.ini").unwrap()));
+    imgui_context.set_ini_filename(Some(match PathBuf::from_str("Config/DefaultGui.ini") {
+        Ok(path_buf) => path_buf,
+        Err(e) => panic!("Failed to set ini file path: {:?}", e),
+    }));
+    print_success_log("Initialize ImGui");
 
     // Initialize imgui-sdl2
     let mut imgui_sdl2_context = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, &window);
     let imgui_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| {
         video_subsystem.gl_get_proc_address(s) as _
     });
+    print_success_log("Initialize imgui-sdl2");
 
     // Set drawing buffer
     #[rustfmt::skip]
@@ -80,7 +107,11 @@ fn main() {
     );
 
     // Main loop until end request (Event processing and Drawing process alternately)
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_pump = match sdl.event_pump() {
+        Ok(event_pump) => event_pump,
+        Err(e) => panic!("Failed to pump pending event: {:?}", e),
+    };
+
     'main: loop {
         // Execute event process
         for ev in event_pump.poll_iter() {
