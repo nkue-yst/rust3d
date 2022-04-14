@@ -105,7 +105,8 @@ impl Shader {
 
                 println!(
                     "Failed to compile shader: type = {}, log = {}",
-                    type_, str::from_utf8(&info_log).unwrap()
+                    type_,
+                    str::from_utf8(&info_log).unwrap()
                 );
             } else {
                 gl::GetProgramiv(shader, gl::LINK_STATUS, &mut success);

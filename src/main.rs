@@ -15,18 +15,18 @@ mod common;
 mod shader;
 mod vertex;
 
+use common::print_success_log;
 use shader::Shader;
 use vertex::Vertex;
-use common::print_success_log;
+
+type Mat4 = cgmath::Matrix4<f32>;
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 
 const FLOAT_NUM: usize = 3;
-const VERTEX_NUM: usize = 3;
+const VERTEX_NUM: usize = 36;
 const BUFF_SIZE: usize = FLOAT_NUM * VERTEX_NUM;
-
-type Mat4 = cgmath::Matrix4<f32>;
 
 fn main() {
     // Initialize SDL2
@@ -91,9 +91,53 @@ fn main() {
     // Set drawing buffer
     #[rustfmt::skip]
     let vertices: [f32; BUFF_SIZE] = [
-        -1.0, -1.0, 0.0,
-         1.0, -1.0, 0.0,
-         0.0,  1.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        1.0, 1.0, 0.0,
+
+        0.0, 0.0, 0.0,
+        1.0, 1.0, 0.0,
+        1.0, 0.0, 0.0,
+
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+
+        0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 1.0,
+
+        0.0, 1.0, 1.0,
+        0.0, 0.0, 1.0,
+        1.0, 0.0, 1.0,
+
+        0.0, 1.0, 1.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 1.0,
+
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 1.0,
+        1.0, 1.0, 1.0,
+
+        0.0, 1.0, 0.0,
+        1.0, 1.0, 1.0,
+        1.0, 1.0, 0.0,
+
+        1.0, 0.0, 1.0,
+        1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0,
+
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 0.0,
+        1.0, 1.0, 1.0,
+
+        0.0, 1.0, 1.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0,
+
+        0.0, 1.0, 1.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
     ];
 
     let vertex = Vertex::new(
@@ -105,6 +149,15 @@ fn main() {
         mem::size_of::<GLfloat>() as GLsizei * FLOAT_NUM as i32,
         VERTEX_NUM as i32,
     );
+
+    // View settings
+    let blend = false;
+    let cull_face = true;
+    let depth_test = false;
+    let wire = true;
+    let camera_x = 2.0f32;
+    let camera_y = 2.0f32;
+    let camera_z = 2.0f32;
 
     // Main loop until end request (Event processing and Drawing process alternately)
     let mut event_pump = match sdl.event_pump() {
@@ -131,8 +184,33 @@ fn main() {
             }
         }
 
-        // Execute drawing process
+        // Update view settings
         unsafe {
+            if blend {
+                gl::Enable(gl::BLEND);
+            } else {
+                gl::Disable(gl::BLEND);
+            }
+
+            if cull_face {
+                gl::Enable(gl::CULL_FACE);
+            } else {
+                gl::Disable(gl::CULL_FACE);
+            }
+
+            if depth_test {
+                gl::Enable(gl::DEPTH_TEST);
+            } else {
+                gl::Disable(gl::DEPTH_TEST);
+            }
+
+            if wire {
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+            } else {
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+            }
+
+            // Execute drawing process
             gl::Viewport(0, 0, WINDOW_WIDTH as i32, WINDOW_HEIGHT as i32);
 
             // Clear viewport
@@ -143,19 +221,19 @@ fn main() {
             let model_matrix = Mat4::identity();
             let view_matrix = Mat4::look_at_rh(
                 cgmath::Point3 {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 5.0,
+                    x: camera_x,
+                    y: camera_y,
+                    z: camera_z,
                 },
                 cgmath::Point3 {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 0.0,
+                    x: 0.5,
+                    y: 0.5,
+                    z: 0.5,
                 },
                 cgmath::Vector3 {
                     x: 0.0,
-                    y: 1.0,
-                    z: 0.0,
+                    y: 0.0,
+                    z: 1.0,
                 },
             );
             let projection_matrix: Mat4 = perspective(
