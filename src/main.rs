@@ -3,6 +3,7 @@ use gl::types::{GLfloat, GLsizei, GLsizeiptr};
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::keyboard::Mod;
 
 use c_str_macro::c_str;
 use std::mem;
@@ -155,9 +156,9 @@ fn main() {
     let cull_face = true;
     let depth_test = false;
     let wire = true;
-    let camera_x = 2.0f32;
-    let camera_y = 2.0f32;
-    let camera_z = 2.0f32;
+    let mut camera_x = 2.0f32;
+    let mut camera_y = 2.0f32;
+    let mut camera_z = 2.0f32;
 
     // Main loop until end request (Event processing and Drawing process alternately)
     let mut event_pump = match sdl.event_pump() {
@@ -175,11 +176,47 @@ fn main() {
             }
 
             match ev {
+                // Quit event
                 Event::Quit { .. }
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'main,
+
+                // Camera move to X
+                Event::KeyDown {
+                    keycode: Some(Keycode::X),
+                    keymod: Mod::LSHIFTMOD,
+                    ..
+                } => camera_x -= 0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::X),
+                    ..
+                } => camera_x += 0.1,
+
+                // Camera move to Y
+                Event::KeyDown {
+                    keycode: Some(Keycode::Y),
+                    keymod: Mod::LSHIFTMOD,
+                    ..
+                } => camera_y -= 0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Y),
+                    ..
+                } => camera_y += 0.1,
+
+                // Camera move to Z
+                Event::KeyDown {
+                    keycode: Some(Keycode::Z),
+                    keymod: Mod::LSHIFTMOD,
+                    ..
+                } => camera_z -= 0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => camera_z += 0.1,
+
+                // Ignore other event
                 _ => {}
             }
         }
