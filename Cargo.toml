@@ -8,9 +8,7 @@ edition = "2021"
 [dependencies]
 cgmath = "0.18.0"
 c_str_macro = "1.0.3"
-
 gl = "0.14.0"
-
 imgui = "0.8.2"
 imgui-sdl2 = "0.15.0"
 imgui-opengl-renderer = "0.11.1"

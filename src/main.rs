@@ -13,10 +13,12 @@ use std::str::FromStr;
 use std::time::Duration;
 
 mod common;
+mod fps_manager;
 mod shader;
 mod vertex;
 
 use common::print_success_log;
+use fps_manager::FPSManager;
 use shader::Shader;
 use vertex::Vertex;
 
@@ -25,20 +27,22 @@ type Mat4 = cgmath::Matrix4<f32>;
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 
+const FPS_LIMIT: u32 = 60;
+
 const FLOAT_NUM: usize = 3;
 const VERTEX_NUM: usize = 36;
 const BUFF_SIZE: usize = FLOAT_NUM * VERTEX_NUM;
 
 fn main() {
     // Initialize SDL2
-    let sdl = match sdl2::init() {
+    let sdl_context = match sdl2::init() {
         Ok(sdl) => sdl,
         Err(e) => panic!("Failed to initialize SDL2: {:?}", e),
     };
     print_success_log("Initialize SDL2");
 
     // Initialize video subsystem
-    let video_subsystem = match sdl.video() {
+    let video_subsystem = match sdl_context.video() {
         Ok(video_subsystem) => video_subsystem,
         Err(e) => panic!("Failed to initialize video subsystem: {:?}", e),
     };
@@ -62,6 +66,10 @@ fn main() {
         Err(e) => panic!("Failed to create new window: {:?}", e),
     };
     print_success_log("Create new window");
+
+    // Initialize FPS manager
+    let mut fps_manager = FPSManager::new();
+    print_success_log("Initialize FPS manager");
 
     // Initialize OpenGL
     let gl_context = match window.gl_create_context() {
@@ -161,7 +169,7 @@ fn main() {
     let mut camera_z = 2.0f32;
 
     // Main loop until end request (Event processing and Drawing process alternately)
-    let mut event_pump = match sdl.event_pump() {
+    let mut event_pump = match sdl_context.event_pump() {
         Ok(event_pump) => event_pump,
         Err(e) => panic!("Failed to pump pending event: {:?}", e),
     };
@@ -289,24 +297,35 @@ fn main() {
             // Draw vertices
             vertex.draw();
 
-            // Draw imgui window
+            // Draw imgui windows
             imgui_sdl2_context.prepare_frame(
                 imgui_context.io_mut(),
                 &window,
                 &event_pump.mouse_state(),
             );
-            let ui = imgui_context.frame();
-            imgui::Window::new("ImGui Window")
-                .size([300.0, 200.0], imgui::Condition::FirstUseEver)
-                .build(&ui, || {});
-            imgui_sdl2_context.prepare_render(&ui, &window);
-            imgui_renderer.render(ui);
+
+            // Status UI
+            let ui_status = imgui_context.frame();
+            imgui::Window::new("Status")
+                .size([250.0, 80.0], imgui::Condition::FirstUseEver)
+                .build(&ui_status, || {
+                    let current_fps = fps_manager.get_fps();
+                    ui_status.text(format!("fps: {}", current_fps));
+
+                    let mouse_pos = ui_status.io().mouse_pos;
+                    ui_status.text(format!(
+                        "Mouse Position: ({}, {})",
+                        mouse_pos[0], mouse_pos[1]
+                    ));
+                });
+            imgui_sdl2_context.prepare_render(&ui_status, &window);
+            imgui_renderer.render(ui_status);
 
             // Update frame
             window.gl_swap_window();
         }
 
         // FPS limitation
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS_LIMIT));
     }
 }
