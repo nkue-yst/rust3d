@@ -5,7 +5,7 @@ use std::mem;
 
 pub struct Vertex {
     vao: u32,
-    vbo: u32,
+    _vbo: u32,
     vertex_num: i32,
 }
 
@@ -20,17 +20,17 @@ impl Vertex {
         vertex_num: i32,
     ) -> Vertex {
         let mut vao = 0;
-        let mut vbo = 0;
+        let mut _vbo = 0;
 
         // Use unsafe block to use OpenGL functions
         unsafe {
             // Generate vertex array object and vertex buffer object
             gl::GenVertexArrays(1, &mut vao);
-            gl::GenBuffers(1, &mut vbo);
+            gl::GenBuffers(1, &mut _vbo);
 
             // Bind array buffer
             gl::BindVertexArray(vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, _vbo);
 
             // Transfer vertex data 1st time
             gl::BufferData(gl::ARRAY_BUFFER, size, data, usage);
@@ -57,7 +57,7 @@ impl Vertex {
 
         Vertex {
             vao,
-            vbo,
+            _vbo,
             vertex_num,
         }
     }

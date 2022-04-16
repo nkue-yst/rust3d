@@ -8,6 +8,7 @@ use sdl2::keyboard::Mod;
 use c_str_macro::c_str;
 use std::mem;
 use std::os::raw::c_void;
+use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
@@ -15,11 +16,13 @@ use std::time::Duration;
 mod common;
 mod fps_manager;
 mod shader;
+mod texture_loader;
 mod vertex;
 
 use common::print_success_log;
 use fps_manager::FPSManager;
 use shader::Shader;
+use texture_loader::TextureLoader;
 use vertex::Vertex;
 
 type Mat4 = cgmath::Matrix4<f32>;
@@ -29,7 +32,7 @@ const WINDOW_HEIGHT: u32 = 720;
 
 const FPS_LIMIT: u32 = 60;
 
-const FLOAT_NUM: usize = 3;
+const FLOAT_NUM: usize = 8;
 const VERTEX_NUM: usize = 36;
 const BUFF_SIZE: usize = FLOAT_NUM * VERTEX_NUM;
 
@@ -71,9 +74,13 @@ fn main() {
     let mut fps_manager = FPSManager::new();
     print_success_log("Initialize FPS manager");
 
+    // Initialize texture loader
+    let mut texture_loader = TextureLoader::new();
+    print_success_log("Initialize texture loader");
+
     // Initialize OpenGL
-    let gl_context = match window.gl_create_context() {
-        Ok(gl_context) => gl_context,
+    let _gl_context = match window.gl_create_context() {
+        Ok(_gl_context) => _gl_context,
         Err(e) => panic!("Failed to initialize OpenGL: {:?}", e),
     };
     print_success_log("Initialize OpenGL");
@@ -97,76 +104,111 @@ fn main() {
     });
     print_success_log("Initialize imgui-sdl2");
 
+    // Load sample texture
+    texture_loader.load(Path::new("resource/Texture.png"), "sample_texture");
+
     // Set drawing buffer
     #[rustfmt::skip]
     let vertices: [f32; BUFF_SIZE] = [
-        0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        1.0, 1.0, 0.0,
+        // x, y, z, normal-x, normal-y, normal-z, tex_coord-x, tex_coord-y
+        0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0,
 
-        0.0, 0.0, 0.0,
-        1.0, 1.0, 0.0,
-        1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0,
+        1.0, 1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0,
+        1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 1.0, 1.0,
 
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0,
 
-        0.0, 0.0, 1.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0,
+        1.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 1.0,
 
-        0.0, 1.0, 1.0,
-        0.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
+        0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+        1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0,
 
-        0.0, 1.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 1.0,
+        0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0,
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
 
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 1.0,
-        1.0, 1.0, 1.0,
+        0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0,
 
-        0.0, 1.0, 0.0,
-        1.0, 1.0, 1.0,
-        1.0, 1.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+        1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0,
 
-        1.0, 0.0, 1.0,
-        1.0, 0.0, 0.0,
-        1.0, 1.0, 0.0,
+        1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
 
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 0.0,
-        1.0, 1.0, 1.0,
+        1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+        1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+        1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
 
-        0.0, 1.0, 1.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0,
+        0.0, 1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0,
 
-        0.0, 1.0, 1.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 1.0,
+        0.0, 1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 1.0,
     ];
 
     let vertex = Vertex::new(
         (mem::size_of::<GLfloat>() * BUFF_SIZE) as GLsizeiptr,
         vertices.as_ptr() as *const c_void,
         gl::DYNAMIC_DRAW,
-        vec![gl::FLOAT],
-        vec![FLOAT_NUM as i32],
+        vec![gl::FLOAT, gl::FLOAT, gl::FLOAT],
+        vec![3, 3, 2],
         mem::size_of::<GLfloat>() as GLsizei * FLOAT_NUM as i32,
         VERTEX_NUM as i32,
     );
 
     // View settings
-    let blend = false;
-    let cull_face = true;
-    let depth_test = false;
-    let wire = true;
+    let mut blend = false;
+    let mut cull_face = true;
+    let mut depth_test = false;
+    let mut wire = false;
     let mut camera_x = 2.0f32;
     let mut camera_y = 2.0f32;
     let mut camera_z = 2.0f32;
+    let alpha = 1.0f32;
+    
+    // Material settings
+    let mat_shininess = 0.1f32;
+    let mat_specular = cgmath::Vector3 {
+        x: 0.2f32,
+        y: 0.2f32,
+        z: 0.2f32,
+    };
+    
+    // Light settings
+    let light_ambient = cgmath::Vector3 {
+        x: 0.3f32,
+        y: 0.3f32,
+        z: 0.3f32,
+    };
+    let light_diffuse = cgmath::Vector3 {
+        x: 0.5f32,
+        y: 0.5f32,
+        z: 0.5f32,
+    };
+    let light_direction = cgmath::Vector3 {
+        x: 1.0f32,
+        y: 1.0f32,
+        z: 0.0f32,
+    };
+    let light_specular = cgmath::Vector3 {
+        x: 0.2f32,
+        y: 0.2f32,
+        z: 0.2f32,
+    };
 
     // Main loop until end request (Event processing and Drawing process alternately)
     let mut event_pump = match sdl_context.event_pump() {
@@ -293,9 +335,19 @@ fn main() {
             shader.set_mat(c_str!("uModel"), &model_matrix);
             shader.set_mat(c_str!("uView"), &view_matrix);
             shader.set_mat(c_str!("uProjection"), &projection_matrix);
+            shader.set_vec(c_str!("uViewPosition"), &cgmath::Vector3::new(camera_x, camera_y, camera_z));
+            shader.set_float(c_str!("uAlpha"), alpha);
+            shader.set_float(c_str!("uMaterial.shininess"), mat_shininess);
+            shader.set_vec(c_str!("uMaterial.specular"), &mat_specular);
+            shader.set_vec(c_str!("uLight.ambient"), &light_ambient);
+            shader.set_vec(c_str!("uLight.diffuse"), &light_diffuse);
+            shader.set_vec(c_str!("uLight.direction"), &light_direction);
+            shader.set_vec(c_str!("uLight.specular"), &light_specular);
 
             // Draw vertices
+            gl::BindTexture(gl::TEXTURE_2D, texture_loader.get_from_id("sample_texture"));
             vertex.draw();
+            gl::BindTexture(gl::TEXTURE_2D, 0);
 
             // Draw imgui windows
             imgui_sdl2_context.prepare_frame(
@@ -303,23 +355,34 @@ fn main() {
                 &window,
                 &event_pump.mouse_state(),
             );
+            let ui = imgui_context.frame();
 
             // Status UI
-            let ui_status = imgui_context.frame();
             imgui::Window::new("Status")
                 .size([250.0, 80.0], imgui::Condition::FirstUseEver)
-                .build(&ui_status, || {
+                .build(&ui, || {
                     let current_fps = fps_manager.get_fps();
-                    ui_status.text(format!("fps: {}", current_fps));
+                    ui.text(format!("fps: {}", current_fps));
 
-                    let mouse_pos = ui_status.io().mouse_pos;
-                    ui_status.text(format!(
+                    let mouse_pos = ui.io().mouse_pos;
+                    ui.text(format!(
                         "Mouse Position: ({}, {})",
                         mouse_pos[0], mouse_pos[1]
                     ));
                 });
-            imgui_sdl2_context.prepare_render(&ui_status, &window);
-            imgui_renderer.render(ui_status);
+
+            // Control panel
+            imgui::Window::new("Control Panel")
+                .size([300.0, 500.0], imgui::Condition::FirstUseEver)
+                .build(&ui, || {
+                    ui.checkbox("Blend", &mut blend);
+                    ui.checkbox("Cull face", &mut cull_face);
+                    ui.checkbox("Depth test", &mut depth_test);
+                    ui.checkbox("Wire", &mut wire);
+                });
+
+            imgui_sdl2_context.prepare_render(&ui, &window);
+            imgui_renderer.render(ui);
 
             // Update frame
             window.gl_swap_window();

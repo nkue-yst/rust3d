@@ -1,5 +1,6 @@
 extern crate gl;
 
+use cgmath::Array;
 use cgmath::Matrix;
 use gl::types::*;
 
@@ -78,6 +79,10 @@ impl Shader {
         gl::UseProgram(self.id);
     }
 
+    pub unsafe fn set_float(&self, name: &CStr, value: f32) {
+        gl::Uniform1f(gl::GetUniformLocation(self.id, name.as_ptr()), value);
+    }
+
     pub unsafe fn set_mat(&self, name: &CStr, mat: &cgmath::Matrix4<f32>) {
         gl::UniformMatrix4fv(
             gl::GetUniformLocation(self.id, name.as_ptr()),
@@ -87,9 +92,13 @@ impl Shader {
         );
     }
 
+    pub unsafe fn set_vec(&self, name: &CStr, value: &cgmath::Vector3<f32>) {
+        gl::Uniform3fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, value.as_ptr());
+    }
+
     unsafe fn check_compile_error(&self, shader: u32, type_: &str) {
         let mut success = gl::FALSE as GLint;
-        let mut info_log = Vec::<u8>::with_capacity(1024);
+        let mut info_log = Vec::<u8>::with_capacity(2048);
         info_log.set_len(1024 - 1);
 
         if type_ != "PROGRAM" {

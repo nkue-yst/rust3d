@@ -23,7 +23,9 @@ impl FPSManager {
         self.current_time = Instant::now();
         self.frame_count += 1;
 
-        if self.current_time.duration_since(self.last_time).as_millis() > Duration::new(1, 0).as_millis() {
+        if self.current_time.duration_since(self.last_time).as_millis()
+            > Duration::new(1, 0).as_millis()
+        {
             self.last_time = self.current_time;
             self.fps = self.frame_count;
             self.frame_count = 0;
